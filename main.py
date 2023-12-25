@@ -4,6 +4,8 @@ import requests
 import random
 import simplejson as json
 
+# https://stackoverflow.com/questions/26021541/how-to-programmatically-create-a-topic-in-apache-kafka-using-python
+
 
 RANDOM_USER_BASE_URL = 'https://randomuser.me/api/?nat=ca'
 PARTIES = ['Liber Party', 'Conservative-ish Party', 'Green-ish Party', 'NDDP Party']

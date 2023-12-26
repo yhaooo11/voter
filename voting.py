@@ -1,5 +1,6 @@
-import datetime
+from datetime import datetime
 import random
+import time
 import psycopg2
 from confluent_kafka import Consumer, KafkaException, KafkaError, SerializingProducer
 import simplejson as json
@@ -79,6 +80,6 @@ if __name__ == '__main__':
                     producer.poll(0)
                 except Exception as e:
                     print('Error', e)
-
+            time.sleep(0.5)
     except Exception as e:
         print(e)

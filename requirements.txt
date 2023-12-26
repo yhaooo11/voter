@@ -6,3 +6,4 @@ psycopg2-binary==2.9.9
 requests==2.31.0
 simplejson==3.19.2
 urllib3==2.1.0
+pyspark==3.5.0

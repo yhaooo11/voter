@@ -71,6 +71,8 @@ if __name__ == '__main__':
                     """, (vote['voter_id'], vote['candidate_id'], vote['voting_time']))
                     conn.commit()
 
+                    # json.dumps(vote) turns vote in JSON-encoded string
+                    # spark reads as string and then converts to JSON
                     producer.produce(
                         'votes_topic',
                         key=vote['voter_id'],

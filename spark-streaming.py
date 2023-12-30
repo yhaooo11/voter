@@ -1,5 +1,5 @@
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import from_json, col
+from pyspark.sql.functions import from_json, col, lit
 from pyspark.sql.functions import sum as _sum
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType, TimestampType
 
@@ -61,12 +61,23 @@ if __name__ == '__main__':
 
     turnout_by_location = enriched_votes_df.groupBy('address.state').count().alias('total_votes')
 
+    total_votes = enriched_votes_df.agg(_sum('vote').alias('total_votes'))
+
+    total_votes_to_kafka = (total_votes.selectExpr('to_json(struct(*)) AS value')
+                            .writeStream
+                            .format('kafka')
+                            .option('kafka.bootstrap.servers', 'localhost:9092')
+                            .option('topic', 'aggregated_total_votes')
+                            .option('checkpointLocation', '/Users/yifanhao/projects/realtime-voting/checkpoints/checkpoint1')
+                            .outputMode('update')
+                            .start())
+
     votes_per_candidate_to_kafka = (votes_per_candidate.selectExpr('to_json(struct(*)) AS value') # The result is a DataFrame with a single column named 'value' containing JSON-encoded strings.
                                     .writeStream
                                     .format('kafka')
                                     .option('kafka.bootstrap.servers', 'localhost:9092')
                                     .option('topic', 'aggregated_votes_per_candidate')
-                                    .option('checkpointLocation', '/Users/yifanhao/projects/realtime-voting/checkpoints/checkpoint1')
+                                    .option('checkpointLocation', '/Users/yifanhao/projects/realtime-voting/checkpoints/checkpoint2')
                                     .outputMode('update')
                                     .start())
     
@@ -75,13 +86,15 @@ if __name__ == '__main__':
                                     .format('kafka')
                                     .option('kafka.bootstrap.servers', 'localhost:9092')
                                     .option('topic', 'aggregated_turnout_by_location')
-                                    .option('checkpointLocation', '/Users/yifanhao/projects/realtime-voting/checkpoints/checkpoint2')
+                                    .option('checkpointLocation', '/Users/yifanhao/projects/realtime-voting/checkpoints/checkpoint3')
                                     .outputMode('update')
                                     .start())
     
     # blocks current thread until streaming ends
     votes_per_candidate_to_kafka.awaitTermination()
     turnout_by_location_to_kafka.awaitTermination()
+    total_votes_to_kafka.awaitTermination()
+
 
 '''
 In Spark Structured Streaming, the defined operations such as watermarking, aggregation, and other transformations are part of a query plan. 

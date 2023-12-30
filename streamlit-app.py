@@ -41,7 +41,9 @@ def fetch_data_from_kafka(consumer):
     messages = consumer.poll(timeout_ms=1000)
     data = []
 
+    # messages.values() for each partition
     for message in messages.values():
+        # actual message objects
         for sub_message in message:
             data.append(sub_message.value)
 
@@ -121,19 +123,22 @@ def update_data():
 
     voters_count, candidates_count = fetch_voting_stats()
 
+    total_votes_consumer = create_kafka_consumer('aggregated_total_votes')
+    total_votes = fetch_data_from_kafka(total_votes_consumer)
+    total_votes_df = pd.DataFrame(total_votes)
+
     st.markdown("""---""")
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
     col1.metric('Total Voters', voters_count)
     col2.metric('Total Candidates', candidates_count)
+    col3.metric('Current # of Votes', total_votes_df.iloc[-1])
 
-    consumer = create_kafka_consumer(topic_name)
+    votes_per_candidate_consumer = create_kafka_consumer('aggregated_votes_per_candidate')
+    votes_per_candidate_data = fetch_data_from_kafka(votes_per_candidate_consumer)
+    votes_per_candidate_df = pd.DataFrame(votes_per_candidate_data)
 
-    data = fetch_data_from_kafka(consumer)
-
-    results = pd.DataFrame(data)
-
-    results = results.loc[results.groupby('candidate_id')['total_votes'].idxmax()]
-    leading_candidate = results.loc[results['total_votes'].idxmax()]
+    votes_per_candidate_df = votes_per_candidate_df.loc[votes_per_candidate_df.groupby('candidate_id')['total_votes'].idxmax()]
+    leading_candidate = votes_per_candidate_df.loc[votes_per_candidate_df['total_votes'].idxmax()]
 
     st.markdown("""---""")
     st.header('Leading Candidate')
@@ -147,26 +152,26 @@ def update_data():
     
     st.markdown("""---""")
     st.header('Voting Statistics')
-    results = results[['candidate_id', 'candidate_name', 'party', 'total_votes']]
-    results = results.reset_index(drop=True)
+    votes_per_candidate_df = votes_per_candidate_df[['candidate_id', 'candidate_name', 'party', 'total_votes']]
+    votes_per_candidate_df = votes_per_candidate_df.reset_index(drop=True)
 
     col1, col2 = st.columns(2)
 
     with col1:
-        bar_fig = plot_bar_chart(results)
+        bar_fig = plot_bar_chart(votes_per_candidate_df)
         st.pyplot(bar_fig)
     
     with col2:
-        donut_fig = plot_donut_chart(results)
+        donut_fig = plot_donut_chart(votes_per_candidate_df)
         st.pyplot(donut_fig)
 
-    st.table(results)
+    st.table(votes_per_candidate_df)
 
     location_consumer = create_kafka_consumer('aggregated_turnout_by_location')
     location_data = fetch_data_from_kafka(location_consumer)
     location_result = pd.DataFrame(location_data)
 
-    location_result.loc[location_result.groupby('state')['count'].idxmax()]
+    location_result = location_result.loc[location_result.groupby('state')['count'].idxmax()]
     location_result = location_result.reset_index(drop=True)
 
     st.header('Location of Voters')
@@ -175,7 +180,6 @@ def update_data():
     st.session_state['last_update'] = time.time()
 
 st.title('Realtime Election Voting Dashboard')
-topic_name = 'aggregated_votes_per_candidate'
 
 sidebar()
 update_data()

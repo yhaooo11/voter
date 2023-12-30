@@ -8,7 +8,7 @@ Made to learn more about data engineering technologies like Kafka and Spark.
 ![sys_arch.png](images/sys_arch.png)
 
 ## Demo
-![demo.mp4](images/demo.mp4)
+https://github.com/yhaooo11/voter/assets/63517269/0c639600-27bb-4daa-a932-4356fb836604
 
 ## How to run
 
